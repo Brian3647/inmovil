@@ -5,6 +5,7 @@ use snowboard::Server;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Instant;
 use std::{env, fs, io};
 
 macro_rules! info {
@@ -89,6 +90,9 @@ struct Data {
 }
 
 fn main() {
+    info!("Loading files...");
+    let start_time = Instant::now();
+
     let args = env::args();
     let (argc, mut argv) = (args.len(), args);
 
@@ -100,9 +104,7 @@ fn main() {
     argv.next();
 
     let dir = argv.next().unwrap();
-    info!("Loading files from `{}`...", dir);
     let contents = load_dir(&dir);
-    success!("Loaded {} files.", contents.len());
 
     let port = if argc > 2 {
         match argv.next().unwrap().parse::<u16>() {
@@ -116,7 +118,6 @@ fn main() {
         3000
     };
 
-    info!("Loading mime types...");
     let mut mime_types = HashMap::new();
 
     for path in contents.keys() {
@@ -126,11 +127,16 @@ fn main() {
             .to_owned();
         mime_types.insert(path.clone(), mime_type);
     }
-    success!("Done.");
+
+    let time_taken = start_time.elapsed().as_secs_f32();
+
+    success!("Loaded {} files in {:.2}s.", contents.len(), time_taken);
 
     let data = Data { contents, dir };
 
     let addr = format!("localhost:{}", port);
+    info!("\n-- Server logs --");
+
     Server::new(addr).run(move |request| {
         let contents = &data.contents;
         let dir = &data.dir;
