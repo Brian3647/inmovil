@@ -49,14 +49,14 @@ fn get_paths(path: impl Into<PathBuf>, existing_files: Vec<PathBuf>) -> Vec<Path
     files
 }
 
-fn read_file(path: impl Into<PathBuf>) -> io::Result<String> {
+fn read_file(path: impl Into<PathBuf>) -> io::Result<Vec<u8>> {
     let path: PathBuf = path.into();
-    let contents = fs::read_to_string(path)?;
+    let contents = fs::read(path)?;
 
     Ok(contents)
 }
 
-fn read_paths(paths: Vec<PathBuf>) -> HashMap<String, String> {
+fn read_paths(paths: Vec<PathBuf>) -> HashMap<String, Vec<u8>> {
     let mut contents = HashMap::new();
 
     for path in paths {
@@ -75,7 +75,7 @@ fn read_paths(paths: Vec<PathBuf>) -> HashMap<String, String> {
     contents
 }
 
-fn load_dir(path: impl Into<PathBuf>) -> HashMap<String, String> {
+fn load_dir(path: impl Into<PathBuf>) -> HashMap<String, Vec<u8>> {
     let path = path.into();
     let mut paths = get_paths(path, vec![]);
     paths.sort();
@@ -83,10 +83,8 @@ fn load_dir(path: impl Into<PathBuf>) -> HashMap<String, String> {
     read_paths(paths)
 }
 
-#[derive(Clone)]
 struct Data {
-    contents: HashMap<String, String>,
-    port: u16,
+    contents: HashMap<String, Vec<u8>>,
     dir: String,
 }
 
@@ -118,27 +116,41 @@ fn main() {
         3000
     };
 
-    let data = Data {
-        contents,
-        port,
-        dir,
-    };
+    info!("Loading mime types...");
+    let mut mime_types = HashMap::new();
 
-    Server::new(&format!("localhost:{}", port), data)
-        .on_load(|data| {
-            success!("Server started at http://localhost:{}", data.port);
-        })
-        .on_request(|request, data| {
-            let contents = &data.contents;
-            let dir = &data.dir;
-            info!("{} {}", request.method, &request.url);
-            let path = Path::new(&dir).join(request.url.trim_start_matches('/'));
+    for path in contents.keys() {
+        let mime_type = mime_guess::from_path(path)
+            .first_or_octet_stream()
+            .essence_str()
+            .to_owned();
+        mime_types.insert(path.clone(), mime_type);
+    }
+    success!("Done.");
 
-            if let Some(contents) = contents.get(&path.display().to_string()) {
-                response!(ok, contents)
-            } else {
-                response!(not_found)
+    let data = Data { contents, dir };
+
+    let addr = format!("localhost:{}", port);
+    Server::new(addr).run(move |request| {
+        let contents = &data.contents;
+        let dir = &data.dir;
+        info!("{} {}", request.method, &request.url);
+        let path = Path::new(&dir)
+            .join(request.url.trim_start_matches('/'))
+            .display()
+            .to_string();
+
+        if let Some(contents) = contents.get(&path) {
+            let mut res = response!(ok);
+            res.set_bytes(contents);
+
+            if let Some(mime_type) = mime_types.get(&path) {
+                res.content_type(mime_type.into());
             }
-        })
-        .run();
+
+            res
+        } else {
+            response!(not_found)
+        }
+    })
 }
