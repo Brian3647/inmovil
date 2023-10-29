@@ -92,6 +92,7 @@ struct Data {
 fn main() {
     info!("Loading files...");
     let start_time = Instant::now();
+    let mut quiet = false;
 
     let args = env::args();
     let (argc, mut argv) = (args.len(), args);
@@ -106,17 +107,21 @@ fn main() {
     let dir = argv.next().unwrap();
     let contents = load_dir(&dir);
 
-    let port = if argc > 2 {
-        match argv.next().unwrap().parse::<u16>() {
-            Ok(port) => port,
-            Err(e) => {
-                error!("Failed to parse port: {:?}", e);
-                return;
-            }
+    let mut port = 3000;
+
+    for arg in argv.take(2) {
+        if arg == "--no-logs" {
+            quiet = true;
+        } else {
+            port = match arg.parse::<u16>() {
+                Ok(x) => x,
+                Err(e) => {
+                    error!("Failed to parse port `{}`: {:?}", arg, e);
+                    return;
+                }
+            };
         }
-    } else {
-        3000
-    };
+    }
 
     let mut mime_types = HashMap::new();
 
@@ -135,12 +140,20 @@ fn main() {
     let data = Data { contents, dir };
 
     let addr = format!("localhost:{}", port);
-    info!("\n-- Server logs --");
+
+    if !quiet {
+        println!();
+        info!("-- Server logs --");
+    }
 
     Server::new(addr).run(move |request| {
         let contents = &data.contents;
         let dir = &data.dir;
-        info!("{} {}", request.method, &request.url);
+
+        if !quiet {
+            info!("{} {}", request.method, &request.url);
+        }
+
         let path = Path::new(&dir)
             .join(request.url.trim_start_matches('/'))
             .display()
