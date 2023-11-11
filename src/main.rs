@@ -89,7 +89,7 @@ struct Data {
     dir: String,
 }
 
-fn main() {
+fn main() -> snowboard::Result {
     info!("Loading files...");
     let start_time = Instant::now();
     let mut quiet = false;
@@ -99,7 +99,7 @@ fn main() {
 
     if argc < 2 {
         error!("Usage: <dir> [port]");
-        return;
+        return Ok(());
     }
 
     argv.next();
@@ -117,7 +117,7 @@ fn main() {
                 Ok(x) => x,
                 Err(e) => {
                     error!("Failed to parse port `{}`: {:?}", arg, e);
-                    return;
+                    return Ok(());
                 }
             };
         }
@@ -146,7 +146,7 @@ fn main() {
         info!("-- Server logs --");
     }
 
-    Server::new(addr).run(move |request| {
+    Server::new(addr)?.run(move |request| {
         let contents = &data.contents;
         let dir = &data.dir;
 
