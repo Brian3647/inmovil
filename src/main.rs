@@ -159,9 +159,8 @@ fn main() -> snowboard::Result {
             .display()
             .to_string();
 
-        if let Some(contents) = contents.get(&path) {
-            let mut res = response!(ok);
-            res.set_bytes(contents);
+        if let Some(contents) = contents.get(&path).cloned() {
+            let mut res = response!(ok, contents);
 
             if let Some(mime_type) = mime_types.get(&path) {
                 res.content_type(mime_type.into());

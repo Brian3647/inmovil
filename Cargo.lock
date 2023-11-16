@@ -104,9 +104,9 @@ dependencies = [
 
 [[package]]
 name = "snowboard"
-version = "0.5.5"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1adeab89163b515bf0664776567b69cdc0f8d9e732fb3f81871de5351b2d33a"
+checksum = "b1eeb5c45645df4a314290ce6918bf2b47cb39f9e229be57238c7b70c46f0d88"
 
 [[package]]
 name = "unicase"

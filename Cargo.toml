@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 colored = "2.0.4"
 mime_guess = "2.0.4"
-snowboard = "0.5.5"
+snowboard = "0.7.0"
