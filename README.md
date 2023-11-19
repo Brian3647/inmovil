@@ -1,6 +1,6 @@
 # Inmóvil
 
-Blazingly fast static file hosting from the CLI using [snowboard](https://github.com/snowboard).
+Blazingly fast static file hosting from the CLI using [snowboard](https://github.com/Brian3647/snowboard).
 
 ## Installing
 
